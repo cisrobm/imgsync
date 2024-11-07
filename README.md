@@ -7,3 +7,8 @@ Example:
 ```
 sudo imgsync.sh backup.img
 ```
+
+To write it back:
+```
+sudo imgwrite.sh backup.img /dev/sdb
+```
