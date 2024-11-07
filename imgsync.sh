@@ -84,8 +84,8 @@ ln -s /proc/self/fd/2 /mnt/rootfs/dev/stderr
 # replace PARTUUIDs with new one
 newuuid=`sfdisk -d $outfile | grep label-id | sed 's/label-id: 0x\(.*\)/\1/'`
 sed -i "s/PARTUUID=.*-02/PARTUUID=$newuuid-02/" /mnt/bootfs/cmdline.txt
-sed -i "s/PARTUUID=.*-01\(\s\+\)\/boot\/firmware/PARTUUID=$newuuid-01\1/" /mnt/rootfs/etc/fstab
-sed -i "s/PARTUUID=.*-02\(\s\+\)\/\s\+/PARTUUID=$newuuid-02\1/" /mnt/rootfs/etc/fstab
+sed -i "s/PARTUUID=.*-01\(\s\+\/boot\/firmware\)/PARTUUID=$newuuid-01\1/" /mnt/rootfs/etc/fstab
+sed -i "s/PARTUUID=.*-02\(\s\+\/\s\+\)/PARTUUID=$newuuid-02\1/" /mnt/rootfs/etc/fstab
 
 # cleanup
 umount /mnt/rootfs
