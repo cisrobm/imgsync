@@ -63,6 +63,7 @@ rsync $rsync_options --delete \
 			--exclude '/tmp/*' \
 			--exclude 'lost\+found/*' \
 			--exclude '/mnt/*' \
+   			--exclude '/var/swap' \
 		/ /mnt/rootfs
 
 # populate /dev directory
