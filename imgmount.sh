@@ -9,10 +9,9 @@ case $1 in
 		losetup -D
 		;;
 	*)
-		mkdir -p /mnt/bootfs
-		mkdir -p /mnt/rootfs
+		mkdir -p /mnt/imgsync
 		losetup -P loop0 $1
-		mount /dev/loop0p1 /mnt/bootfs
-		mount /dev/loop0p2 /mnt/rootfs
+		mount /dev/loop0p1 /mnt/imgsync
+		mount /dev/loop0p2 /mnt/imgsync/boot/firmware
 		;;
 esac
