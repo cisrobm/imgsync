@@ -38,14 +38,14 @@ EOF
 # setup loop devices
 losetup -P loop0 $outfile
 
-# copy boot partition
+# create boot filesystem, mount the partition and copy the files
 mkfs.vfat -F32 /dev/loop0p1
 fatlabel /dev/loop0p1 bootfs
 mkdir -p /mnt/bootfs
 mount /dev/loop0p1 /mnt/bootfs
 rsync $rsync_options /boot/firmware/ /mnt/bootfs
 
-# create filesystem
+# create root filesystem, mount the partition and copy the files
 mkfs.ext4 -m 0 /dev/loop0p2
 e2label /dev/loop0p2 rootfs
 
