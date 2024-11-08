@@ -2,10 +2,9 @@
 
 case $1 in
 	"-u")
-		umount /mnt/bootfs
-		umount /mnt/rootfs
-		rmdir /mnt/bootfs
-		rmdir /mnt/rootfs
+		umount /mnt/imgsync/boot/firmware
+		umount /mnt/imgsync
+		rmdir /mnt/imgsync
 		losetup -D
 		;;
 	*)
