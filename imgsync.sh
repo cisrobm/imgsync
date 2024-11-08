@@ -56,7 +56,6 @@ mkdir -p $rootmountpoint
 mount /dev/loop0p2 $rootmountpoint
 echo "Base image created and mounted. Starting rsync ..."
 rsync $rsync_options --delete \
-			--exclude '/var/swap' \
 			--exclude '.gvfs' \
 			--exclude '/dev/*' \
 			--exclude '/mnt/clone/*' \
