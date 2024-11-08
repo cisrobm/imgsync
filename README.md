@@ -12,10 +12,10 @@ Small set of scripts to intelligently back up a running Raspberry Pi installatio
 Example:
 
 ```
-sudo imgsync.sh backup.img
+sudo ./imgsync.sh backup.img
 ```
 
 To write it back:
 ```
-sudo imgwrite.sh backup.img /dev/sdb
+sudo ./imgwrite.sh backup.img /dev/sdb
 ```
