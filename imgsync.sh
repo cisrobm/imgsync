@@ -8,7 +8,7 @@ rootmountpoint=/mnt/rootfs
 
 if [ -z "${1}" ]; then
 	echo No output filename specified
-	exit
+	exit 1
 fi
 
 outfile=$1
@@ -24,37 +24,70 @@ disk_used=`df --output=used -k / | tail -1`
 filesize=$(((disk_used*101/100)/1024+$bootsize))
 
 #rsync_options="--force -rltWDEHXAgoptx"
-rsync_options="-aAHXS --info=progress2"
+rsync_options="-aAHXSDW --no-compress --no-checksum --info=progress2"
 
-# create empty image file
-if ! dd if=/dev/zero of=$outfile bs=1M count=$filesize conv=sparse; then
-	echo Error creating image file
-	exit
+if ! ( mkdir -p $bootmountpoint || mkdir -p $rootmountpoint ); then
+	exit 1
 fi
 
-# create partitions inside the image
-sfdisk $outfile << EOF
-8192,${bootsize}MiB,c
-$((bootsize*1024*1024/512)),,
-EOF
+# is it a block device?
+if [ -b $outfile ]; then
+        read -p "Are you sure you want to write to ${outfile}?"$'\n'"ALL DATA ON ${outfile} WILL BE DESTROYED!"$'\n'"Proceed? [Y/N] " yn
+	case $yn in
+		y) ;&
+		Y) ;;
+		*) echo "Understandable. Have a nice day."; exit 1;;
+	esac
 
-# setup loop devices
-losetup -P loop0 $outfile
+	echo "Creating partitions ..."
+	sfdisk "$outfile" <<- EOF
+	8192,${bootsize}MiB,c
+	$((bootsize*1024*1024/512)),,
+	EOF
 
-# create boot filesystem, mount the partition and copy the files
-mkfs.vfat -F32 /dev/loop0p1
-fatlabel /dev/loop0p1 bootfs
-mkdir -p $bootmountpoint
-mount /dev/loop0p1 $bootmountpoint
+	echo "Creating boot filesystem ..."
+	mkfs.vfat -F32 ${outfile}1
+	fatlabel ${outfile}1 bootfs
+	mount ${outfile}1 $bootmountpoint
+	mkfs.ext4 -m 0 ${outfile}2
+	e2label ${outfile}2 rootfs
+	mount ${outfile}2 $rootmountpoint
+
+# not a block device
+else
+	# create empty image file
+	if ! dd if=/dev/zero of=$outfile bs=1M count=$filesize conv=sparse; then
+		echo Error creating image file
+		exit 1
+	fi
+
+	# create partitions inside the image
+	sfdisk $outfile <<- EOF
+	8192,${bootsize}MiB,c
+	$((bootsize*1024*1024/512)),,
+	EOF
+
+	# setup loop devices
+	if ! losetup -P loop0 $outfile; then
+		echo losetup failed.
+		exit 1
+	fi
+
+	# create boot filesystem and mount it
+	mkfs.vfat -F32 /dev/loop0p1
+	fatlabel /dev/loop0p1 bootfs
+	mount /dev/loop0p1 $bootmountpoint
+
+	# create root filesystem and mount it
+	mkfs.ext4 -m 0 /dev/loop0p2
+	e2label /dev/loop0p2 rootfs
+	mount /dev/loop0p2 $rootmountpoint
+fi
+
+echo "Copying bootfs contents ..."
 rsync $rsync_options /boot/firmware/ $bootmountpoint
 
-# create root filesystem, mount the partition and copy the files
-mkfs.ext4 -m 0 /dev/loop0p2
-e2label /dev/loop0p2 rootfs
-
-mkdir -p $rootmountpoint
-mount /dev/loop0p2 $rootmountpoint
-echo "Base image created and mounted. Starting rsync ..."
+echo "Copying rootfs contents ..."
 rsync $rsync_options --delete \
 			--exclude '.gvfs' \
 			--exclude '/dev/*' \
