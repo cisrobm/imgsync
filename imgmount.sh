@@ -2,7 +2,15 @@
 
 mountpoint=/mnt/imgsync
 
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
 case $1 in
+	"")
+		echo "Usage: $0 [imgfile] | $0 -u"
+		;;
 	"-u")
 		umount $mountpoint/boot/firmware
 		umount $mountpoint

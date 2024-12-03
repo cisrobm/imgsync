@@ -6,6 +6,11 @@ bootsize=512
 bootmountpoint=/mnt/bootfs
 rootmountpoint=/mnt/rootfs
 
+if [ "$EUID" -ne 0 ]
+  then echo "Please run as root"
+  exit
+fi
+
 if [ -z "${1}" ]; then
 	echo No output filename specified
 	exit 1
@@ -26,12 +31,17 @@ filesize=$(((disk_used*101/100)/1024+$bootsize))
 #rsync_options="--force -rltWDEHXAgoptx"
 rsync_options="-aAHXSDW --no-compress --no-checksum --info=progress2"
 
-if ! ( mkdir -p $bootmountpoint || mkdir -p $rootmountpoint ); then
+if ! ( mkdir -p $bootmountpoint $rootmountpoint ); then
 	exit 1
 fi
 
 # is it a block device?
 if [ -b $outfile ]; then
+	freebytes=$((blockdev --getsize64 $outfile))
+	if [[ ! $(($freebytes/1024 - $filesize)) -gt 0 ]]; then
+		echo "Not enough space on destination drive"
+		exit 3
+	fi
         read -p "Are you sure you want to write to ${outfile}?"$'\n'"ALL DATA ON ${outfile} WILL BE DESTROYED!"$'\n'"Proceed? [Y/N] " yn
 	case $yn in
 		y) ;&
@@ -55,6 +65,11 @@ if [ -b $outfile ]; then
 
 # not a block device
 else
+	freebytes=$(($(stat -f --format="%f*%S" .)))
+	if [[ ! $(($freebytes/1024 - $filesize)) -gt 0 ]]; then
+		echo "Not enough space on destination drive"
+		exit 3
+	fi
 	# create empty image file
 	if ! dd if=/dev/zero of=$outfile bs=1M count=$filesize conv=sparse; then
 		echo Error creating image file
@@ -99,6 +114,7 @@ rsync $rsync_options --delete \
 			--exclude 'lost\+found/*' \
 			--exclude '/mnt/*' \
    			--exclude '/var/swap' \
+			--exclude '/home/*/.cache' \
 		/ $rootmountpoint
 
 # populate /dev directory
@@ -130,3 +146,4 @@ rmdir $bootmountpoint
 rmdir $rootmountpoint
 losetup -d /dev/loop0
 sync
+echo All done.
